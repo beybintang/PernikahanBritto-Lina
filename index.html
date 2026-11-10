@@ -66,11 +66,6 @@
 </head>
 <body class="relative min-h-screen text-gray-800 antialiased selection:bg-burgundy selection:text-white">
 
-    <!-- AUDIO ELEMENT KUSTOM -->
-    <audio id="bg-music" loop preload="auto">
-        <source src="https://files.catbox.moe/e0au3k.mp3" type="audio/mpeg">
-    </audio>
-
     <!-- FLOATING MUSIC BUTTON -->
     <div id="music-container" class="fixed bottom-6 right-6 z-50 hidden">
         <button id="music-toggle" onclick="toggleAudio()" class="w-12 h-12 rounded-full bg-burgundy text-gold border border-gold/40 flex items-center justify-center shadow-2xl hover:bg-deepburgundy transition-all duration-300 focus:outline-none pulse-ring">
@@ -122,7 +117,7 @@
 
         <div class="fixed inset-0 batik-pattern pointer-events-none z-0"></div>
 
-        <!-- HERO SECTION WITH NEW BACKGROUND -->
+        <!-- HERO SECTION -->
         <section class="relative min-h-[92vh] flex flex-col items-center justify-between text-center px-6 py-12 overflow-hidden">
             <div class="absolute inset-0 z-0">
                 <img src="https://lh3.googleusercontent.com/d/1nwVcj6ArVvLIKyeI5kOs6FR-Uyo1NBqt" alt="Background Hero Undangan" class="w-full h-full object-cover opacity-50 filter brightness-90" referrerpolicy="no-referrer" onerror="handleDriveImgError(this, '1nwVcj6ArVvLIKyeI5kOs6FR-Uyo1NBqt')">
@@ -393,7 +388,7 @@
         Pesan Anda berhasil dikirim!
     </div>
 
-    <!-- JAVASCRIPT LOGIC WITH UPDATED AUDIO ENGINE -->
+    <!-- WEB AUDIO SYNTHESIZER ENGINE (GUARANTEED AUTOPLAY) -->
     <script>
         // DRIVE IMAGE FALLBACK HANDLER
         function handleDriveImgError(imgEl, fileId) {
@@ -403,26 +398,80 @@
             }
         }
 
-        const bgMusic = document.getElementById('bg-music');
+        // WEB AUDIO SYNTHESIZER SYSTEM (ROMANTIC PIANO MELODY)
+        let audioCtx = null;
+        let isPlaying = false;
+        let melodyTimer = null;
+
+        const notes = {
+            'C4': 261.63, 'E4': 329.63, 'G4': 392.00, 'A4': 440.00, 'B4': 493.88,
+            'C5': 523.25, 'D5': 587.33, 'E5': 659.25, 'F5': 698.46, 'G5': 783.99
+        };
+
+        const romanticSequence = [
+            'C4', 'E4', 'G4', 'C5', 'E5', 'G5', 'E5', 'C5',
+            'A4', 'C5', 'E5', 'A4', 'F5', 'E5', 'C5', 'A4',
+            'F4', 'A4', 'C5', 'F5', 'C5', 'A4', 'F4', 'A4',
+            'G4', 'B4', 'D5', 'G5', 'D5', 'B4', 'G4', 'B4'
+        ];
+
+        function playPianoNote(freq, duration) {
+            if (!audioCtx) return;
+            try {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+
+                gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                osc.start();
+                osc.stop(audioCtx.currentTime + duration);
+            } catch(e) { console.log(e); }
+        }
+
+        function startRomanticMelody() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+
+            isPlaying = true;
+            let step = 0;
+
+            if (melodyTimer) clearInterval(melodyTimer);
+
+            melodyTimer = setInterval(() => {
+                if (!isPlaying) return;
+                const noteName = romanticSequence[step % romanticSequence.length];
+                if (notes[noteName]) {
+                    playPianoNote(notes[noteName], 1.2);
+                }
+                step++;
+            }, 350);
+        }
+
+        function stopRomanticMelody() {
+            isPlaying = false;
+            if (melodyTimer) clearInterval(melodyTimer);
+        }
 
         function openInvitation() {
             const cover = document.getElementById('opening-cover');
             const musicBtn = document.getElementById('music-container');
-            
+
             cover.classList.add('cover-slide-up');
             musicBtn.classList.remove('hidden');
 
-            // Paksa browser memuat & memutar lagu saat tombol diklik
-            if (bgMusic) {
-                bgMusic.load(); // Memastikan file audio siap diputar
-                const playPromise = bgMusic.play();
-                
-                if (playPromise !== undefined) {
-                    playPromise.catch(err => {
-                        console.log("Autoplay diblokir:", err);
-                    });
-                }
-            }
+            // Memulai melodi piano otomatis melalui Web Audio API
+            startRomanticMelody();
 
             setTimeout(() => {
                 cover.style.display = 'none';
@@ -431,13 +480,12 @@
 
         function toggleAudio() {
             const icon = document.getElementById('music-icon');
-            if (!bgMusic) return;
 
-            if (!bgMusic.paused) {
-                bgMusic.pause();
+            if (isPlaying) {
+                stopRomanticMelody();
                 if (icon) icon.className = 'fas fa-volume-mute';
             } else {
-                bgMusic.play();
+                startRomanticMelody();
                 if (icon) icon.className = 'fas fa-music';
             }
         }
